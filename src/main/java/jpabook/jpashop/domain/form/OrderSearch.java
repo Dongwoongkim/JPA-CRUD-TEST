@@ -1,9 +1,12 @@
-package jpabook.jpashop.domain.search;
+package jpabook.jpashop.domain.form;
+
 
 import jpabook.jpashop.domain.OrderStatus;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class OrderSearch {
     private String memberName;
     private OrderStatus orderStatus;

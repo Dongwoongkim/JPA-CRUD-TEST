@@ -10,20 +10,23 @@ import java.util.Date;
 import java.util.List;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "ORDERS")
-@Getter @Setter
 public class Order {
+
     @Id
     @GeneratedValue
     @Column(name = "ORDER_ID")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+
     @JoinColumn(name = "MEMBER_ID")
     private Member member;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<OrderItem> orderItems = new ArrayList<>();
+    private List<OrderItem> orderItems = new ArrayList<OrderItem>();
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "DELIVERY_ID")
@@ -31,31 +34,32 @@ public class Order {
 
     private LocalDateTime orderDate;
 
-    @Enumerated(value = EnumType.STRING)
+    @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
-    // 연관관계 메소드
+    // 양방향 연관관계 메소드
     public void setMember(Member member) {
         this.member = member;
         member.getOrders().add(this);
     }
-    public void addOrderItem(OrderItem orderItem) {
-        orderItems.add(orderItem);
-        orderItem.setOrder(this);
-    }
+
     public void setDelivery(Delivery delivery) {
-        this.delivery = delivery;
         delivery.setOrder(this);
+        this.delivery = delivery;
     }
 
+    public void addOrderItem(OrderItem orderItem) {
+        orderItem.setOrder(this);
+        this.orderItems.add(orderItem);
+    }
 
     // 생성 메소드
-    public static Order createOrder(Member member, Delivery delivery,OrderItem... orderItems) {
+    public static Order crateOrder(Member member, Delivery delivery, OrderItem... orderItem) {
         Order order = new Order();
         order.setMember(member);
         order.setDelivery(delivery);
-        for (OrderItem item : orderItems) {
-            order.orderItems.add(item);
+        for (OrderItem item : orderItem) {
+            order.addOrderItem(item);
         }
         order.setStatus(OrderStatus.ORDER);
         order.setOrderDate(LocalDateTime.now());
@@ -63,24 +67,24 @@ public class Order {
     }
 
     // 비즈니스 로직
-    public void cancel(){
+    // 취소
+    public void cancel() {
         if (delivery.getStatus() == DeliveryStatus.COMP) {
-            throw new IllegalStateException("이미 배송완료된 상품은 취소 불가능");
+            throw new IllegalStateException("이미 배송 완료가 된 상품은 취소가 불가능합니다");
         }
-
         this.setStatus(OrderStatus.CANCEL);
+
         for (OrderItem orderItem : orderItems) {
             orderItem.cancel();
         }
     }
 
-    // 조회 로직
-    public int getTotalPrice()
-    {
-        int totalPrice = 0;
+    // 총 가격 조회
+    public int getTotalPrice() {
+        int total = 0;
         for (OrderItem orderItem : orderItems) {
-            totalPrice += orderItem.getTotalPrice();
+            total += orderItem.getTotalPrice();
         }
-        return totalPrice;
+        return total;
     }
 }

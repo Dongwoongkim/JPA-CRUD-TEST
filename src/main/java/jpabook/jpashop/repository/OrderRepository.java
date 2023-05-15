@@ -1,69 +1,66 @@
 package jpabook.jpashop.repository;
 
 import jpabook.jpashop.domain.Order;
-import jpabook.jpashop.domain.search.OrderSearch;
+import jpabook.jpashop.domain.form.OrderSearch;
+import jpabook.jpashop.domain.OrderStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
-import javax.swing.text.html.parser.Entity;
 import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
 public class OrderRepository {
     private final EntityManager em;
+    private final MemberRepository memberRepository;
+    private final ItemRepository itemRepository;
 
     public void save(Order order) {
         em.persist(order);
     }
 
-    public Order findOne(Long id) {
+    public Order findById(Long id) {
         return em.find(Order.class, id);
     }
 
-    // JPQL로 처리
-    // Criteria로도 처리가능하지만, 복잡하고 난해
-    // 추후 QueryDSL로 처리
-    public List<Order> findAllByString(OrderSearch orderSearch) {
-        String jpql = "select o From Order o join o.member m";
-        boolean isFirstCondition = true;
+    public List<Order> findBySearch(OrderSearch orderSearch) {
+        String jpql = "select o from Order o join o.member m";
 
-        // 주문 상태 검색
-        if (orderSearch.getOrderStatus() != null) {
-            if (isFirstCondition) {
+        String memberName = orderSearch.getMemberName();
+        OrderStatus orderStatus = orderSearch.getOrderStatus();
+
+        boolean firstCondition = true;
+
+        if (StringUtils.hasText(memberName)) {
+            if (firstCondition) {
                 jpql += " where";
-                isFirstCondition = false;
+                firstCondition = false;
+            } else {
+                jpql += " and";
+            }
+            jpql += " m.name like :name";
+        }
+
+        if (orderStatus != null) {
+            if (firstCondition) {
+                jpql += " where";
+                firstCondition = false;
             } else {
                 jpql += " and";
             }
             jpql += " o.status =: status";
         }
 
-        // 회원 이름 검색
-        if (StringUtils.hasText(orderSearch.getMemberName())) {
-            if (isFirstCondition) {
-                jpql += " where";
-                isFirstCondition = false;
-            } else {
-                jpql += " and";
-            }
+        TypedQuery<Order> query = em.createQuery(jpql, Order.class).setMaxResults(1000);
 
-            jpql += " m.name like :name";
+        if (orderStatus != null) {
+            query = query.setParameter("status", orderStatus);
         }
-
-
-        TypedQuery<Order> query = em.createQuery(jpql, Order.class)
-                .setMaxResults(1000);
-
-        if (orderSearch.getOrderStatus() != null) {
-            query.setParameter("status", orderSearch.getOrderStatus());
-        }
-
-        if (StringUtils.hasText(orderSearch.getMemberName())) {
-            query.setParameter("name", orderSearch.getMemberName());
+        if (StringUtils.hasText(memberName)) {
+            query = query.setParameter("name", memberName);
         }
 
         return query.getResultList();

@@ -9,32 +9,30 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-@Transactional(readOnly = true) // 데이터의 변경이 없는 읽기전용 메소드에 사용 -> 성능 약간 향상
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MemberService {
     private final MemberRepository memberRepository;
 
-    @Transactional(readOnly = false)
-    public Long join(Member member) {
+    @Transactional
+    public void save(Member member) {
         validateDuplicateMember(member);
         memberRepository.save(member);
-        return member.getId();
     }
 
     private void validateDuplicateMember(Member member) {
-        List<Member> findMembers = memberRepository.findByName(member.getName());
-
-        if (!findMembers.isEmpty()) {
+        List<Member> list = memberRepository.findByName(member.getName());
+        if (!list.isEmpty()) {
             throw new IllegalStateException("이미 존재하는 회원입니다");
         }
     }
-
-    public List<Member> findMembers(){
+    public Member findById(Long id) {
+        return memberRepository.findById(id);
+    }
+    public List<Member> findAll() {
         return memberRepository.findAll();
     }
-
-    public Member findOne(Long memberId) {
-        return memberRepository.findOne(memberId);
-
+    public List<Member> findByName(String name) {
+        return memberRepository.findByName(name);
     }
 }
